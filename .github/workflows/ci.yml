@@ -18,10 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # No `cache: npm` — that option needs a committed package-lock.json to key
+      # on, which doesn't exist yet. Add it back with the lockfile later.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
       # No package-lock.json is committed yet (the authoring machine had no Node),
       # so `npm ci` would fail. Use `npm install` until a lockfile is committed —
       # then switch both jobs back to `npm ci` for reproducible installs.
@@ -43,10 +44,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # No `cache: npm` — that option needs a committed package-lock.json to key
+      # on, which doesn't exist yet. Add it back with the lockfile later.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
       # Boots the local Supabase stack (Postgres on 54322) and applies every
       # migration in supabase/migrations in order — including pg_cron + pgcrypto
       # in the `extensions` schema, so the search_path lessons are exercised for
