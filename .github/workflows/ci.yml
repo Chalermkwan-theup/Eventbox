@@ -1,0 +1,65 @@
+name: CI
+
+# Pre-deploy gate (DEPLOY.md §0). Every push to main and every PR must pass both
+# jobs before merge/deploy. The dev machine that wrote this code has no Node, so
+# this workflow is the first place the frontend/API is actually compiled + tested.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: typecheck · lint · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      # No package-lock.json is committed yet (the authoring machine had no Node),
+      # so `npm ci` would fail. Use `npm install` until a lockfile is committed —
+      # then switch both jobs back to `npm ci` for reproducible installs.
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      # `next build` also type-checks/lints, but the explicit steps above give a
+      # clearer first failure. Dummy NEXT_PUBLIC_* values keep the build from
+      # tripping on any module-scope env read (e.g. loadStripe) — they are never
+      # real secrets and are only used at build time here.
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-build
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy_for_build
+
+  test:
+    name: db integration + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      # Boots the local Supabase stack (Postgres on 54322) and applies every
+      # migration in supabase/migrations in order — including pg_cron + pgcrypto
+      # in the `extensions` schema, so the search_path lessons are exercised for
+      # real. tests/*.test.ts connect via the pg driver to this DB.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: npm install --no-audit --no-fund
+      - name: Run vitest (unit + DB integration)
+        run: npm run test:run
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
