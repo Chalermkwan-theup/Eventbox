@@ -53,9 +53,10 @@ jobs:
       # migration in supabase/migrations in order — including pg_cron + pgcrypto
       # in the `extensions` schema, so the search_path lessons are exercised for
       # real. tests/*.test.ts connect via the pg driver to this DB.
+      # No `version:` input — the action rejects "latest" as a literal release
+      # tag (install silently no-ops -> `supabase: command not found`). Omitting
+      # it makes the action fetch the actual latest CLI release.
       - uses: supabase/setup-cli@v1
-        with:
-          version: latest
       - run: supabase start
       - run: npm install --no-audit --no-fund
       - name: Run vitest (unit + DB integration)
