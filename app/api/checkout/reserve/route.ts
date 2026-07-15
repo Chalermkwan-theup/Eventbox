@@ -87,14 +87,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "INTERNAL_ERROR", message: "Reservation failed unexpectedly." }, { status: 500 });
   }
 
+  // The Supabase client isn't generated with a typed schema, so rpc().single()
+  // yields `{}` — cast to the shape reserve_tickets actually RETURNS (see
+  // supabase/migrations/0004_fix_reserve_tickets_ambiguous_status.sql).
+  const row = data as {
+    order_id: string;
+    status: string;
+    expires_at: string;
+    subtotal_satang: number;
+    discount_satang: number;
+    total_satang: number;
+  };
+
   return NextResponse.json(
     {
-      orderId: data.order_id,
-      status: data.status,
-      expiresAt: data.expires_at,
-      subtotalSatang: data.subtotal_satang,
-      discountSatang: data.discount_satang,
-      totalSatang: data.total_satang,
+      orderId: row.order_id,
+      status: row.status,
+      expiresAt: row.expires_at,
+      subtotalSatang: row.subtotal_satang,
+      discountSatang: row.discount_satang,
+      totalSatang: row.total_satang,
     },
     { status: 201 }
   );

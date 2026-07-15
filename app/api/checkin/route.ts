@@ -97,13 +97,23 @@ export async function POST(request: Request) {
     );
   }
 
+  // Untyped Supabase client -> rpc().single() data is `{}`; cast to what
+  // check_in_ticket() RETURNS (see 0012_checkin_dashboard.sql).
+  const row = data as {
+    ticket_id: string;
+    serial_no: string;
+    tier_name: string;
+    attendee_email: string | null;
+    checked_in_at: string;
+  };
+
   return NextResponse.json(
     {
-      ticketId: data.ticket_id,
-      serialNo: data.serial_no,
-      tierName: data.tier_name,
-      attendeeEmail: data.attendee_email,
-      checkedInAt: data.checked_in_at,
+      ticketId: row.ticket_id,
+      serialNo: row.serial_no,
+      tierName: row.tier_name,
+      attendeeEmail: row.attendee_email,
+      checkedInAt: row.checked_in_at,
     },
     { headers: NO_STORE_HEADERS }
   );

@@ -59,15 +59,28 @@ export async function GET(request: Request, { params }: { params: Promise<{ even
     );
   }
 
+  // Untyped Supabase client -> rpc().single() data is `{}`; cast to what
+  // event_checkin_stats() RETURNS (see 0012_checkin_dashboard.sql +
+  // 0013_fix_stats_revenue_bigint.sql).
+  const row = data as {
+    total_tickets: number;
+    checked_in_count: number;
+    check_in_rate: number;
+    total_reserved: number;
+    total_sold: number;
+    revenue_satang: number;
+    tier_breakdown: unknown;
+  };
+
   return NextResponse.json(
     {
-      totalTickets: data.total_tickets,
-      checkedInCount: data.checked_in_count,
-      checkInRate: data.check_in_rate,
-      totalReserved: data.total_reserved,
-      totalSold: data.total_sold,
-      revenueSatang: data.revenue_satang,
-      tierBreakdown: data.tier_breakdown,
+      totalTickets: row.total_tickets,
+      checkedInCount: row.checked_in_count,
+      checkInRate: row.check_in_rate,
+      totalReserved: row.total_reserved,
+      totalSold: row.total_sold,
+      revenueSatang: row.revenue_satang,
+      tierBreakdown: row.tier_breakdown,
     },
     { headers: NO_STORE_HEADERS }
   );
